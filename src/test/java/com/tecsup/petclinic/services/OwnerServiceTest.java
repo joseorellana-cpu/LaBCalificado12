@@ -3,7 +3,7 @@ package com.tecsup.petclinic.services;
 import com.tecsup.petclinic.dtos.OwnerDTO;
 import com.tecsup.petclinic.entities.Owner;
 import com.tecsup.petclinic.exceptions.OwnerNotFoundException;
-import com.tecsup.petclinic.repositories.OwnerRepository;
+import com.tecsup.petclinic.ports.OwnerDataPort;
 import com.tecsup.petclinic.util.TObjectCreator;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -18,6 +18,10 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Pruebas unitarias de OwnerService con mocks — sin mencionar Repository.
+ * OwnerServiceImpl depende de OwnerDataPort, no de OwnerRepository.
+ */
 @Slf4j
 @SpringBootTest
 public class OwnerServiceTest {
@@ -26,7 +30,7 @@ public class OwnerServiceTest {
     private OwnerService ownerService;
 
     @MockitoBean
-    private OwnerRepository repository;
+    private OwnerDataPort ownerDataPort;
 
     // =========================================================================
     // Integrante A — CRUD básico
@@ -47,7 +51,7 @@ public class OwnerServiceTest {
         OwnerDTO newOwnerDTO = new OwnerDTO(null, FIRST_NAME, LAST_NAME, ADDRESS, CITY, TELEPHONE);
         Owner ownerSaved = new Owner(10L, FIRST_NAME, LAST_NAME, ADDRESS, CITY, TELEPHONE);
 
-        Mockito.when(repository.save(Mockito.any(Owner.class)))
+        Mockito.when(ownerDataPort.save(Mockito.any(Owner.class)))
                 .thenReturn(ownerSaved);
 
         // Act
@@ -65,7 +69,7 @@ public class OwnerServiceTest {
 
         // El mapper debe haber convertido el DTO a entidad antes de guardar
         ArgumentCaptor<Owner> captor = ArgumentCaptor.forClass(Owner.class);
-        Mockito.verify(repository, Mockito.times(1)).save(captor.capture());
+        Mockito.verify(ownerDataPort, Mockito.times(1)).save(captor.capture());
         assertEquals(FIRST_NAME, captor.getValue().getFirstName());
         assertEquals(TELEPHONE, captor.getValue().getTelephone());
     }
@@ -85,7 +89,7 @@ public class OwnerServiceTest {
         Owner ownerUpdated = new Owner(3L, UP_FIRST_NAME, "Mendoza",
                 "Junin 789", UP_CITY, "999555666");
 
-        Mockito.when(repository.save(Mockito.any(Owner.class)))
+        Mockito.when(ownerDataPort.save(Mockito.any(Owner.class)))
                 .thenReturn(ownerUpdated);
 
         // Act
@@ -100,7 +104,7 @@ public class OwnerServiceTest {
 
         // Se debe persistir la entidad con los datos actualizados
         ArgumentCaptor<Owner> captor = ArgumentCaptor.forClass(Owner.class);
-        Mockito.verify(repository, Mockito.times(1)).save(captor.capture());
+        Mockito.verify(ownerDataPort, Mockito.times(1)).save(captor.capture());
         assertEquals(UP_FIRST_NAME, captor.getValue().getFirstName());
         assertEquals(UP_CITY, captor.getValue().getCity());
     }
@@ -113,14 +117,14 @@ public class OwnerServiceTest {
         // Arrange
         Integer OWNER_ID = 5;
 
-        Mockito.when(repository.existsById(OWNER_ID)).thenReturn(true);
-        Mockito.doNothing().when(repository).deleteById(OWNER_ID);
+        Mockito.when(ownerDataPort.existsById(OWNER_ID)).thenReturn(true);
+        Mockito.doNothing().when(ownerDataPort).deleteById(OWNER_ID);
 
         // Act & Assert
         assertDoesNotThrow(() -> ownerService.delete(OWNER_ID));
 
-        Mockito.verify(repository, Mockito.times(1)).existsById(OWNER_ID);
-        Mockito.verify(repository, Mockito.times(1)).deleteById(OWNER_ID);
+        Mockito.verify(ownerDataPort, Mockito.times(1)).existsById(OWNER_ID);
+        Mockito.verify(ownerDataPort, Mockito.times(1)).deleteById(OWNER_ID);
     }
 
     // =========================================================================
@@ -133,7 +137,7 @@ public class OwnerServiceTest {
     @Test
     public void testFindOwnerById_NotFound() {
         // Arrange
-        Mockito.when(repository.findById(999))
+        Mockito.when(ownerDataPort.findById(999))
                 .thenReturn(Optional.empty());
 
         // Act & Assert
@@ -148,7 +152,7 @@ public class OwnerServiceTest {
     @Test
     public void testDeleteOwner_NotFound() {
         // Arrange
-        Mockito.when(repository.existsById(999)).thenReturn(false);
+        Mockito.when(ownerDataPort.existsById(999)).thenReturn(false);
 
         // Act & Assert
         assertThrows(OwnerNotFoundException.class, () -> {
@@ -162,7 +166,7 @@ public class OwnerServiceTest {
     @Test
     public void testFindByLastName_Empty() {
         // Arrange
-        Mockito.when(repository.findByLastName("Inexistente"))
+        Mockito.when(ownerDataPort.findByLastName("Inexistente"))
                 .thenReturn(List.of());
 
         // Act
@@ -184,7 +188,7 @@ public class OwnerServiceTest {
     public void testFindOwnerById() {
         // Arrange
         Owner ownerExpected = TObjectCreator.getOwner();
-        Mockito.when(repository.findById(1))
+        Mockito.when(ownerDataPort.findById(1))
                 .thenReturn(Optional.of(ownerExpected));
 
         // Act
@@ -212,7 +216,7 @@ public class OwnerServiceTest {
         // Arrange
         String FIND_LAST_NAME = "Davis";
         List<Owner> ownersExpected = TObjectCreator.getOwnersForFindByLastName();
-        Mockito.when(repository.findByLastName(FIND_LAST_NAME))
+        Mockito.when(ownerDataPort.findByLastName(FIND_LAST_NAME))
                 .thenReturn(ownersExpected);
 
         // Act
@@ -231,7 +235,7 @@ public class OwnerServiceTest {
         // Arrange
         String FIND_CITY = "Madison";
         List<Owner> ownersExpected = TObjectCreator.getOwnersForFindByCity();
-        Mockito.when(repository.findByCity(FIND_CITY))
+        Mockito.when(ownerDataPort.findByCity(FIND_CITY))
                 .thenReturn(ownersExpected);
 
         // Act

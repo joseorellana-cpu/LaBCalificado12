@@ -2,7 +2,7 @@ package com.tecsup.petclinic.services;
 
 import com.tecsup.petclinic.dtos.OwnerDTO;
 import com.tecsup.petclinic.exceptions.OwnerNotFoundException;
-import com.tecsup.petclinic.repositories.OwnerRepository;
+import com.tecsup.petclinic.ports.OwnerDataPort;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,6 +20,8 @@ import static org.junit.jupiter.api.Assertions.*;
  *   Esta clase tiene UNA única responsabilidad: validar comportamientos
  *   de error de OwnerService. No verifica CRUD ni búsquedas, lo que
  *   mantiene el scope acotado y cada test independiente.
+ *
+ * Solo se trabaja con OwnerService — sin mencionar Repository.
  */
 @SpringBootTest
 class OwnerServiceErrorIntegrationTest {
@@ -28,7 +30,7 @@ class OwnerServiceErrorIntegrationTest {
     private OwnerService ownerService;
 
     @MockitoBean
-    private OwnerRepository ownerRepository;
+    private OwnerDataPort ownerDataPort;
 
     // =========================================================================
     // Integrante C — Casos de error
@@ -44,7 +46,7 @@ class OwnerServiceErrorIntegrationTest {
     @Test
     void testFindOwnerById_NotFound() {
         // Arrange
-        org.mockito.Mockito.when(ownerRepository.findById(999))
+        org.mockito.Mockito.when(ownerDataPort.findById(999))
                 .thenReturn(Optional.empty());
 
         // Act & Assert
@@ -57,13 +59,13 @@ class OwnerServiceErrorIntegrationTest {
      * Verifica que delete lance OwnerNotFoundException cuando el ID no existe.
      *
      * SOLID — Liskov Substitution (L):
-     *   El mock de OwnerRepository es un doble intercambiable;
+     *   El mock de OwnerDataPort es un doble intercambiable;
      *   el test no depende de la implementación real del repositorio.
      */
     @Test
     void testDeleteOwner_NotFound() {
         // Arrange
-        org.mockito.Mockito.when(ownerRepository.existsById(999))
+        org.mockito.Mockito.when(ownerDataPort.existsById(999))
                 .thenReturn(false);
 
         // Act & Assert
@@ -82,7 +84,7 @@ class OwnerServiceErrorIntegrationTest {
     @Test
     void testFindByLastName_Empty() {
         // Arrange
-        org.mockito.Mockito.when(ownerRepository.findByLastName("Inexistente"))
+        org.mockito.Mockito.when(ownerDataPort.findByLastName("Inexistente"))
                 .thenReturn(List.of());
 
         // Act
