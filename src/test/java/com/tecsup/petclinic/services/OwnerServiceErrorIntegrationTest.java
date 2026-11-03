@@ -44,7 +44,6 @@ class OwnerServiceErrorIntegrationTest {
     @Test
     void testFindOwnerById_NotFound() {
         // Arrange
-        ownerRepository.findById(999);
         org.mockito.Mockito.when(ownerRepository.findById(999))
                 .thenReturn(Optional.empty());
 

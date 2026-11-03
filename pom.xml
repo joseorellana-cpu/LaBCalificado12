@@ -68,6 +68,23 @@
 			<scope>runtime</scope>
 		</dependency>
 
+		<!-- Mockito y ByteBuddy como dependencias explícitas (evita self-attach dinámico) -->
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>net.bytebuddy</groupId>
+			<artifactId>byte-buddy</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>net.bytebuddy</groupId>
+			<artifactId>byte-buddy-agent</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
  
 	<build>
