@@ -24,3 +24,14 @@ Con el perfil `h2` activo por defecto (base de datos en memoria, datos de `schem
 
 Credenciales H2: JDBC URL `jdbc:h2:mem:testdb`, usuario `sa`, contraseña `sa`.
 
+
+
+### Integrante A - CRUD basico de OwnerService (pruebas de integracion)
+
+Clase: src/test/java/com/tecsup/petclinic/services/OwnerServiceCrudIntegrationTest.java
+
+- testCreateOwner - crear dueno correctamente.
+- testUpdateOwner - actualizar datos de un dueno.
+- testDeleteOwner - eliminar dueno.
+
+Conflictos resueltos: (completar)
