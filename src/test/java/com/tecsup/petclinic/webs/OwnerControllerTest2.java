@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * Pruebas de integración del OwnerController contra H2 (sin mocks del servicio).
- * Integrante B — Creación.
+ * Integrante B — Búsquedas y consultas.
  */
 @Slf4j
 @SpringBootTest
@@ -32,64 +32,29 @@ public class OwnerControllerTest2 {
     private OwnerService ownerService;
 
     /**
-     * O — Las pruebas son extensibles: agregar nuevos campos no rompe este test.
-     * Integrante B: testCreateOwner → POST /owners → 201 Created y jsonPath de los campos enviados.
+     * Integrante B: testFindOwnerOK → GET /owners/1 → 200 OK, jsonPath $.lastName = "Franklin".
      */
     @Test
-    public void testCreateOwner() throws Exception {
-        // Arrange
-        String json = """
-            {
-                "firstName": "Carlos",
-                "lastName": "Rodriguez",
-                "address": "Av. Javier 456",
-                "city": "Lima",
-                "telephone": "987654321"
-            }
-            """;
+    public void testFindOwnerOK() throws Exception {
+        // Arrange — asegurar owner con lastName "Franklin"
+        try {
+            ownerService.findById(1);
+        } catch (Exception e) {
+            var dto = new OwnerDTO(null, "John", "Franklin", "123 Main St", "Madison", "5551234");
+            ownerService.create(dto);
+        }
 
         // Act & Assert
-        mockMvc.perform(post("/owners")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.firstName", is("Carlos")))
-                .andExpect(jsonPath("$.lastName", is("Rodriguez")))
-                .andExpect(jsonPath("$.address", is("Av. Javier 456")))
-                .andExpect(jsonPath("$.city", is("Lima")))
-                .andExpect(jsonPath("$.telephone", is("987654321")));
+        mockMvc.perform(get("/owners/1")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lastName", is("Franklin")));
 
-        log.info("testCreateOwner: SOLID O — extensible sin modificar código de producción");
+        log.info("testFindOwnerOK: SOLID O — extensible para otros IDs sin cambiar código");
     }
 
     /**
-     * S — Cada test verifica una sola responsabilidad: cuerpo inválido → 400.
-     * Integrante B: testCreateOwner_BadRequest → cuerpo inválido (sin lastName) → 400 Bad Request.
-     */
-    @Test
-    public void testCreateOwner_BadRequest() throws Exception {
-        // Arrange — JSON sin lastName (campo requerido)
-        String json = """
-            {
-                "firstName": "Test",
-                "address": "Test",
-                "city": "Test",
-                "telephone": "123"
-            }
-            """;
-
-        // Act & Assert
-        mockMvc.perform(post("/owners")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isBadRequest());
-
-        log.info("testCreateOwner_BadRequest: SOLID S — una sola responsabilidad (validación de entrada)");
-    }
-
-    /**
-     * L — Los mocks son intercambiables; aquí H2 real, comportamiento consistente.
-     * Integrante B: testFindByLastName → GET /owners?lastName=Davis → 2 resultados.
+     * Integrante B: testFindByLastName → GET /owners?lastName=Davis → resultados.
      */
     @Test
     public void testFindByLastName() throws Exception {
@@ -118,5 +83,27 @@ public class OwnerControllerTest2 {
                 .andExpect(jsonPath("$[*].lastName", everyItem(is("Davis"))));
 
         log.info("testFindByLastName: SOLID L — comportamiento consistente, resultados intercambiables");
+    }
+
+    /**
+     * Integrante B: testFindAllOwners → GET /owners → 200 OK, JSON.
+     */
+    @Test
+    public void testFindAllOwners() throws Exception {
+        // Arrange — al menos un owner debe existir en H2
+        var owners = ownerService.findAll();
+        if (owners.isEmpty()) {
+            var dto = new OwnerDTO(null, "Test", "TestOwner", "Test Addr", "Test City", "123456");
+            dto = ownerService.create(dto);
+        }
+
+        // Act & Assert
+        mockMvc.perform(get("/owners")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))))
+                .andExpect(jsonPath("$[0].id", notNullValue()));
+
+        log.info("testFindAllOwners: SOLID S — un test, una responsabilidad (listar)");
     }
 }

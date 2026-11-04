@@ -3,7 +3,6 @@ package com.tecsup.petclinic.webs;
 import com.tecsup.petclinic.dtos.OwnerDTO;
 import com.tecsup.petclinic.services.OwnerService;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -15,22 +14,14 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.everyItem;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
+import static org.hamcrest.Matchers.*;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
  * Pruebas del OwnerController con servicio mockeado.
- * Integrante B — Creación.
+ * Integrante B — Búsquedas y consultas.
  */
 @Slf4j
 @WebMvcTest(OwnerController.class)
@@ -43,11 +34,6 @@ public class OwnerControllerMockitoTest2 {
     @Autowired
     private OwnerService ownerService;
 
-    @BeforeEach
-    void setUp() {
-        org.mockito.Mockito.reset(ownerService);
-    }
-
     @TestConfiguration
     static class MockConfig {
         @Bean
@@ -57,69 +43,25 @@ public class OwnerControllerMockitoTest2 {
     }
 
     /**
-     * S — Cada test tiene una sola responsabilidad: creación exitosa.
-     * Integrante B: testCreateOwner → POST /owners → 201 Created y jsonPath de los campos enviados.
+     * Integrante B: testFindOwnerOK → GET /owners/1 → 200 OK.
      */
     @Test
-    public void testCreateOwner() throws Exception {
+    public void testFindOwnerOK() throws Exception {
         // Arrange
-        OwnerDTO mockCreated = new OwnerDTO(1, "Carlos", "Rodriguez",
-                "Av. Javier 456", "Lima", "987654321");
-        when(ownerService.create(any(OwnerDTO.class))).thenReturn(mockCreated);
-
-        String json = """
-            {
-                "firstName": "Carlos",
-                "lastName": "Rodriguez",
-                "address": "Av. Javier 456",
-                "city": "Lima",
-                "telephone": "987654321"
-            }
-            """;
+        OwnerDTO mockOwner = new OwnerDTO(1, "John", "Franklin", "123 Main St", "Madison", "5551234");
+        when(ownerService.findById(1)).thenReturn(mockOwner);
 
         // Act & Assert
-        mockMvc.perform(post("/owners")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.firstName", equalTo("Carlos")))
-                .andExpect(jsonPath("$.lastName", equalTo("Rodriguez")))
-                .andExpect(jsonPath("$.address", equalTo("Av. Javier 456")))
-                .andExpect(jsonPath("$.city", equalTo("Lima")))
-                .andExpect(jsonPath("$.telephone", equalTo("987654321")));
+        mockMvc.perform(get("/owners/1")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lastName", is("Franklin")));
 
-        verify(ownerService, times(1)).create(any(OwnerDTO.class));
-        log.info("testCreateOwner: SOLID S — una sola responsabilidad (crear owner)");
+        verify(ownerService, times(1)).findById(1);
+        log.info("testFindOwnerOK: SOLID S — un test, una responsabilidad (consulta por ID)");
     }
 
     /**
-     * O — Extensible: nuevos campos en el JSON no requieren cambiar el test.
-     * Integrante B: testCreateOwner_BadRequest → cuerpo inválido (sin lastName) → 400 Bad Request.
-     */
-    @Test
-    public void testCreateOwner_BadRequest() throws Exception {
-        // Arrange — JSON sin lastName
-        String json = """
-            {
-                "firstName": "Test",
-                "address": "Test",
-                "city": "Test",
-                "telephone": "123"
-            }
-            """;
-
-        // Act & Assert
-        mockMvc.perform(post("/owners")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isBadRequest());
-
-        verify(ownerService, never()).create(any(OwnerDTO.class));
-        log.info("testCreateOwner_BadRequest: SOLID O — extensible a otros campos requeridos");
-    }
-
-    /**
-     * D — Depende de abstracciones (OwnerService) y no de implementaciones concretas.
      * Integrante B: testFindByLastName → GET /owners?lastName=Davis → 2 resultados.
      */
     @Test
@@ -139,5 +81,25 @@ public class OwnerControllerMockitoTest2 {
 
         verify(ownerService, times(1)).findByLastName("Davis");
         log.info("testFindByLastName: SOLID D — dependencia en abstracción OwnerService");
+    }
+
+    /**
+     * Integrante B: testFindAllOwners → GET /owners → 200 OK, JSON.
+     */
+    @Test
+    public void testFindAllOwners() throws Exception {
+        // Arrange
+        OwnerDTO mockOwner = new OwnerDTO(1, "John", "Franklin", "123 Main St", "Madison", "5551234");
+        when(ownerService.findAll()).thenReturn(List.of(mockOwner));
+
+        // Act & Assert
+        mockMvc.perform(get("/owners")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].id", is(1)));
+
+        verify(ownerService, times(1)).findAll();
+        log.info("testFindAllOwners: SOLID D — dependencia en abstracción OwnerService");
     }
 }

@@ -3,9 +3,7 @@ package com.tecsup.petclinic.webs;
 import com.tecsup.petclinic.dtos.OwnerDTO;
 import com.tecsup.petclinic.services.OwnerService;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -14,17 +12,14 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.Collections;
-import java.util.List;
-
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
  * Pruebas del OwnerController con servicio mockeado.
- * Integrante A — Listado y consulta.
+ * Integrante A — CRUD básico.
  */
 @Slf4j
 @WebMvcTest(OwnerController.class)
@@ -46,61 +41,86 @@ public class OwnerControllerMockitoTest {
     }
 
     /**
-     * D — Depende de abstracciones (OwnerService), no de implementaciones concretas.
-     * Integrante A: testFindAllOwners → GET /owners → 200 OK, JSON, primer id = 1.
+     * Integrante A: testCreateOwner → POST /owners → 201 Created.
      */
     @Test
-    public void testFindAllOwners() throws Exception {
+    public void testCreateOwner() throws Exception {
         // Arrange
-        OwnerDTO mockOwner = new OwnerDTO(1, "John", "Franklin", "123 Main St", "Madison", "5551234");
-        when(ownerService.findAll()).thenReturn(List.of(mockOwner));
+        OwnerDTO mockCreated = new OwnerDTO(1, "Carlos", "Rodriguez",
+                "Av. Javier 456", "Lima", "987654321");
+        when(ownerService.create(any(OwnerDTO.class))).thenReturn(mockCreated);
+
+        String json = """
+            {
+                "firstName": "Carlos",
+                "lastName": "Rodriguez",
+                "address": "Av. Javier 456",
+                "city": "Lima",
+                "telephone": "987654321"
+            }
+            """;
 
         // Act & Assert
-        mockMvc.perform(get("/owners")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].id", is(1)));
+        mockMvc.perform(post("/owners")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.firstName", equalTo("Carlos")))
+                .andExpect(jsonPath("$.lastName", equalTo("Rodriguez")))
+                .andExpect(jsonPath("$.address", equalTo("Av. Javier 456")))
+                .andExpect(jsonPath("$.city", equalTo("Lima")))
+                .andExpect(jsonPath("$.telephone", equalTo("987654321")));
 
-        verify(ownerService, times(1)).findAll();
-        log.info("testFindAllOwners: SOLID D — dependencia en abstracción OwnerService");
+        verify(ownerService, times(1)).create(any(OwnerDTO.class));
+        log.info("testCreateOwner: SOLID S — una sola responsabilidad (crear owner)");
     }
 
     /**
-     * S — Cada test tiene una sola responsabilidad: obtener un owner por ID.
-     * Integrante A: testFindOwnerOK → GET /owners/1 → 200 OK, jsonPath $.lastName = "Franklin".
+     * Integrante A: testUpdateOwner → PUT /owners/{id} → 200 OK.
      */
     @Test
-    public void testFindOwnerOK() throws Exception {
+    public void testUpdateOwner() throws Exception {
         // Arrange
-        OwnerDTO mockOwner = new OwnerDTO(1, "John", "Franklin", "123 Main St", "Madison", "5551234");
-        when(ownerService.findById(1)).thenReturn(mockOwner);
+        OwnerDTO mockUpdated = new OwnerDTO(1, "Ana Actualizada", "Garcia Actualizada",
+                "Calle A 999", "Trujillo", "999888777");
+        when(ownerService.update(any(OwnerDTO.class))).thenReturn(mockUpdated);
+
+        String json = """
+            {
+                "firstName": "Ana Actualizada",
+                "lastName": "Garcia Actualizada",
+                "address": "Calle A 999",
+                "city": "Trujillo",
+                "telephone": "999888777"
+            }
+            """;
 
         // Act & Assert
-        mockMvc.perform(get("/owners/1")
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(put("/owners/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.lastName", is("Franklin")));
+                .andExpect(jsonPath("$.firstName", equalTo("Ana Actualizada")))
+                .andExpect(jsonPath("$.city", equalTo("Trujillo")));
 
-        verify(ownerService, times(1)).findById(1);
-        log.info("testFindOwnerOK: SOLID S — un test, una responsabilidad (consulta por ID)");
+        verify(ownerService, times(1)).update(any(OwnerDTO.class));
+        log.info("testUpdateOwner: SOLID S — una sola responsabilidad (actualizar)");
     }
 
     /**
-     * I — Usa solo el método estrictamente necesario de OwnerService (findById).
-     * Integrante A: testFindOwnerKO → GET /owners/666 → 404 Not Found.
+     * Integrante A: testDeleteOwner → DELETE /owners/{id} → 204 No Content.
      */
     @Test
-    public void testFindOwnerKO() throws Exception {
+    public void testDeleteOwner() throws Exception {
         // Arrange
-        when(ownerService.findById(666)).thenThrow(new com.tecsup.petclinic.exceptions.OwnerNotFoundException("Owner not found with id: 666"));
+        doNothing().when(ownerService).delete(anyInt());
 
         // Act & Assert
-        mockMvc.perform(get("/owners/666")
+        mockMvc.perform(delete("/owners/1")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNoContent());
 
-        verify(ownerService, times(1)).findById(666);
-        log.info("testFindOwnerKO: SOLID I — usa solo findById, métodos mínimos de la interfaz");
+        verify(ownerService, times(1)).delete(1);
+        log.info("testDeleteOwner: SOLID O — extensible para otros IDs");
     }
 }

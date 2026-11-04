@@ -13,24 +13,14 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.Collections;
-import java.util.List;
-
 import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
  * Pruebas del OwnerController con servicio mockeado.
- * Integrante C — Actualización y borrado.
+ * Integrante C — Casos de error.
  */
 @Slf4j
 @WebMvcTest(OwnerController.class)
@@ -52,58 +42,23 @@ public class OwnerControllerMockitoTest3 {
     }
 
     /**
-     * S — Cada test tiene una sola responsabilidad: actualización con PUT.
-     * Integrante C: testUpdateOwner → PUT /owners/{id} → 200 OK.
+     * Integrante C: testFindOwnerKO → GET /owners/666 → 404 Not Found.
      */
     @Test
-    public void testUpdateOwner() throws Exception {
+    public void testFindOwnerKO() throws Exception {
         // Arrange
-        OwnerDTO mockUpdated = new OwnerDTO(1, "Ana Actualizada", "Garcia Actualizada",
-                "Calle A 999", "Trujillo", "999888777");
-        when(ownerService.update(any(OwnerDTO.class))).thenReturn(mockUpdated);
-
-        String json = """
-            {
-                "firstName": "Ana Actualizada",
-                "lastName": "Garcia Actualizada",
-                "address": "Calle A 999",
-                "city": "Trujillo",
-                "telephone": "999888777"
-            }
-            """;
+        when(ownerService.findById(666)).thenThrow(new OwnerNotFoundException("Owner not found with id: 666"));
 
         // Act & Assert
-        mockMvc.perform(put("/owners/1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.firstName", equalTo("Ana Actualizada")))
-                .andExpect(jsonPath("$.city", equalTo("Trujillo")));
-
-        verify(ownerService, times(1)).update(any(OwnerDTO.class));
-        log.info("testUpdateOwner: SOLID S — una sola responsabilidad (actualizar)");
-    }
-
-    /**
-     * O — Las pruebas son extensibles sin modificar código de producción.
-     * Integrante C: testDeleteOwner → DELETE /owners/{id} → 200 OK.
-     */
-    @Test
-    public void testDeleteOwner() throws Exception {
-        // Arrange
-        doNothing().when(ownerService).delete(anyInt());
-
-        // Act & Assert
-        mockMvc.perform(delete("/owners/1")
+        mockMvc.perform(get("/owners/666")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isNotFound());
 
-        verify(ownerService, times(1)).delete(1);
-        log.info("testDeleteOwner: SOLID O — extensible para otros IDs");
+        verify(ownerService, times(1)).findById(666);
+        log.info("testFindOwnerKO: SOLID I — usa solo findById, métodos mínimos de la interfaz");
     }
 
     /**
-     * D — Depende de abstracciones (OwnerService), no de implementaciones concretas.
      * Integrante C: testDeleteOwnerKO → DELETE /owners/1000 → 404 Not Found.
      */
     @Test
@@ -119,5 +74,30 @@ public class OwnerControllerMockitoTest3 {
 
         verify(ownerService, times(1)).delete(1000);
         log.info("testDeleteOwnerKO: SOLID D — dependencia en abstracción OwnerService");
+    }
+
+    /**
+     * Integrante C: testCreateOwner_BadRequest → cuerpo inválido (sin lastName) → 400 Bad Request.
+     */
+    @Test
+    public void testCreateOwner_BadRequest() throws Exception {
+        // Arrange — JSON sin lastName
+        String json = """
+            {
+                "firstName": "Test",
+                "address": "Test",
+                "city": "Test",
+                "telephone": "123"
+            }
+            """;
+
+        // Act & Assert
+        mockMvc.perform(post("/owners")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest());
+
+        verify(ownerService, never()).create(any(OwnerDTO.class));
+        log.info("testCreateOwner_BadRequest: SOLID O — extensible a otros campos requeridos");
     }
 }
